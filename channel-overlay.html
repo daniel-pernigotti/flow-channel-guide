@@ -428,6 +428,13 @@
             }
         });
     </script>
+
+        // Intentar fullscreen automático
+    setTimeout(() => {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        }
+    }, 500);
 </body>
 
 </html>
