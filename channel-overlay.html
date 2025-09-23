@@ -24,6 +24,16 @@
             user-select: none;
         }
 
+        .version-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            font-family: monospace;
+        }
+
         .channel-number {
             position: absolute;
             top: 30px;
@@ -135,7 +145,7 @@
             font-size: 20px;
         }
 
-        /* Efecto de cambio rápido */
+        /* Efecto de cambio rÃ¡pido */
         .quick-change {
             animation: quickFlash 0.15s ease-out;
         }
@@ -148,6 +158,8 @@
     </style>
 </head>
 <body>
+    <div class="version-info">v2.1</div>
+    
     <div class="channel-number" id="channelNumber">--</div>
     
     <div class="channel-container" id="channelContainer">
@@ -162,6 +174,7 @@
         <span><span class="arrow">↑</span> Canal siguiente</span>
         <span><span class="arrow">↓</span> Canal anterior</span>
         <span><span class="arrow">ESC</span> Cerrar guía</span>
+        <span><span class="arrow">F11</span> Pantalla completa</span>
     </div>
 
     <div class="loading-bar">
@@ -379,6 +392,15 @@
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 window.close();
+            } else if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('No se pudo activar fullscreen:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
             }
         });
 
@@ -421,19 +443,15 @@
                 e.returnValue = '';
             }
         });
-    </script>
-    <script>
-        // Intentar fullscreen automático
+
+        // Intentar fullscreen automático después de cargar
         setTimeout(() => {
             if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            } else if (document.documentElement.webkitRequestFullscreen) {
-                document.documentElement.webkitRequestFullscreen();
-            } else if (document.documentElement.msRequestFullscreen) {
-                document.documentElement.msRequestFullscreen();
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen automático no disponible:', err);
+                });
             }
         }, 500);
     </script>
 </body>
 </html>
-
