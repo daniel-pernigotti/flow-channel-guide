@@ -158,7 +158,7 @@
     </style>
 </head>
 <body>
-    <div class="version-info">v2.1.4</div>
+    <div class="version-info">v2.1.5</div>
     
     <div class="channel-number" id="channelNumber">--</div>
     
@@ -446,15 +446,12 @@
 
         // Intentar fullscreen automático después de cargar
         setTimeout(() => {
-            try {
-                document.documentElement.requestFullscreen?.()
-            }
-            catch (error) {
-                console.error(error)
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen automático no disponible:', err);
+                });
             }
         }, 500);
     </script>
 </body>
 </html>
-
-
