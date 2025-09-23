@@ -446,12 +446,9 @@
 
         // Intentar fullscreen automático después de cargar
         setTimeout(() => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('Fullscreen automático no disponible:', err);
-                });
-            }
+            document.documentElement.requestFullscreen.()
         }, 500);
     </script>
 </body>
 </html>
+
