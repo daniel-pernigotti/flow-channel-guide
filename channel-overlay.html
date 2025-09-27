@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flow Channel Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;800;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,9 +13,9 @@
         }
 
         body {
-            background: rgba(0, 0, 0, 0.95);
+            background: #111111;
             color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -34,15 +35,68 @@
             font-family: monospace;
         }
 
-        .channel-number {
+        .channel-info-container {
             position: absolute;
             top: 30px;
             right: 30px;
-            font-size: 72px;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            z-index: 10;
+            height: 104px;
+        }
+
+        .channel-name-header {
+            width: 320px;
+            text-align: right;
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            white-space: pre-line; /* Permite saltos de línea */
+        }
+
+        .channel-name-header.small {
+            font-size: 52px;
+            line-height: 52px;
+        }
+
+        .channel-name-header.medium {
+            font-size: 48px;
+            line-height: 52px;
+        }
+
+        .channel-name-header.large {
+            font-size: 44px;
+            line-height: 47px;
+        }
+
+        .channel-separator {
+            width: 10px;
+            height: 80px;
+            background: #00DEA5;
+            margin: 0;
+            flex-shrink: 0;
+            margin: 0 24px 0 32px
+        }
+
+        .channel-number {
+            font-size: 64px;
+            font-weight: 600;
             color: #fff;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            z-index: 10;
+            font-family: 'Roboto', sans-serif;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100%;
+            flex-shrink: 0;
         }
 
         .channel-container {
@@ -51,44 +105,20 @@
         }
 
         .channel-logo {
-            width: 400px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            width: 800px;
+            height: 250px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 30px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            margin: 0 auto;
+            background: transparent;
+            border: none;
         }
 
         .channel-logo img {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
-        }
-
-        .channel-name {
-            font-size: 48px;
-            font-weight: 300;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
-        }
-
-        .status-indicator {
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 20px;
-            min-height: 24px;
-        }
-
-        .status-indicator.loading {
-            color: #00a8ff;
         }
 
         .loading-bar {
@@ -124,28 +154,7 @@
             }
         }
 
-        .hint {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 14px;
-            opacity: 0.6;
-            display: flex;
-            gap: 30px;
-        }
-
-        .hint span {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .arrow {
-            font-size: 20px;
-        }
-
-        /* Efecto de cambio rÃ¡pido */
+        /* Efecto de cambio rápido */
         .quick-change {
             animation: quickFlash 0.15s ease-out;
         }
@@ -158,23 +167,18 @@
     </style>
 </head>
 <body>
-    <div class="version-info">v2.1.5</div>
+    <div class="version-info">v3.1.5</div>
     
-    <div class="channel-number" id="channelNumber">--</div>
+    <div class="channel-info-container">
+        <div class="channel-name-header" id="channelNameHeader">Canal</div>
+        <div class="channel-separator"></div>
+        <div class="channel-number" id="channelNumber">--</div>
+    </div>
     
     <div class="channel-container" id="channelContainer">
         <div class="channel-logo" id="channelLogo">
-            <span style="font-size: 32px; color: rgba(255,255,255,0.5);">LOGO</span>
+            <span style="font-size: 32px; color: rgba(255,255,255,0.3);">LOGO</span>
         </div>
-        <div class="channel-name" id="channelName">Cargando...</div>
-        <div class="status-indicator" id="statusIndicator"></div>
-    </div>
-
-    <div class="hint">
-        <span><span class="arrow">↑</span> Canal siguiente</span>
-        <span><span class="arrow">↓</span> Canal anterior</span>
-        <span><span class="arrow">ESC</span> Cerrar guía</span>
-        <span><span class="arrow">F11</span> Pantalla completa</span>
     </div>
 
     <div class="loading-bar">
@@ -200,31 +204,31 @@
             { id: 686, name: "Encuentro", number: 22 },
             { id: 676, name: "CNN", number: 23 },
             { id: 8398, name: "IP Noticias", number: 24 },
-            { id: 9117, name: "BravoTV", number: 25 },
+            { id: 9117, name: "Bravo TV", number: 25 },
             { id: 7097, name: "Diputados TV", number: 36 },
             { id: 10017, name: "MIX TV", number: 85 },
-            { id: 270, name: "DeporTV Central", number: 100 },
+            { id: 270, name: "DeporTV", number: 100 },
             { id: 74, name: "TyC Sports", number: 101 },
             { id: 280, name: "ESPN", number: 102 },
             { id: 278, name: "ESPN2", number: 103 },
             { id: 72, name: "ESPN3", number: 104 },
             { id: 279, name: "ESPN4", number: 105 },
             { id: 73, name: "FOX Sports", number: 106 },
-            { id: 292, name: "Fox Sports 2", number: 107 },
-            { id: 293, name: "Fox Sports 3", number: 108 },
+            { id: 292, name: "FOX Sports 2", number: 107 },
+            { id: 293, name: "FOX Sports 3", number: 108 },
             { id: 710, name: "NBA TV", number: 111 },
             { id: 641, name: "Discovery Turbo", number: 112 },
-            { id: 713, name: "PakaPaka", number: 200 },
+            { id: 713, name: "Paka Paka", number: 200 },
             { id: 275, name: "Disney Channel", number: 201 },
             { id: 6857, name: "Nickelodeon", number: 202 },
             { id: 71, name: "Cartoon Network", number: 203 },
             { id: 9140, name: "DreamWorks", number: 204 },
             { id: 679, name: "Discovery Kids", number: 205 },
             { id: 266, name: "WB Cartoonito", number: 206 },
-            { id: 276, name: "DisneyJr.", number: 207 },
+            { id: 276, name: "Disney Junior", number: 207 },
             { id: 264, name: "BabyTV", number: 208 },
             { id: 726, name: "Tooncast", number: 209 },
-            { id: 711, name: "NickJr.", number: 210 },
+            { id: 711, name: "Nick Jr.", number: 210 },
             { id: 9657, name: "Plim Plim TV", number: 211 },
             { id: 9937, name: "KidOO", number: 212 },
             { id: 701, name: "CineAR", number: 300 },
@@ -237,24 +241,24 @@
             { id: 294, name: "FX", number: 308 },
             { id: 123, name: "Star Channel", number: 309 },
             { id: 124, name: "Sony", number: 310 },
-            { id: 298, name: "WB TV", number: 311 },
+            { id: 298, name: "Warner TV", number: 311 },
             { id: 731, name: "Universal TV", number: 312 },
             { id: 263, name: "AXN", number: 313 },
             { id: 718, name: "Studio Universal", number: 314 },
             { id: 242, name: "A&E", number: 315 },
             { id: 9497, name: "USA", number: 317 },
             { id: 722, name: "TCM", number: 318 },
-            { id: 261, name: "amc", number: 319 },
+            { id: 261, name: "AMC", number: 319 },
             { id: 9717, name: "Golden", number: 322 },
             { id: 9139, name: "Sony Movies", number: 323 },
             { id: 642, name: "Discovery ID", number: 325 },
             { id: 714, name: "Paramount", number: 327 },
-            { id: 9737, name: "tln tlnovelas", number: 333 },
+            { id: 9737, name: "TLNovelas", number: 333 },
             { id: 9537, name: "Adult Swim", number: 335 },
             { id: 692, name: "Lifetime", number: 400 },
-            { id: 295, name: "elGourmet", number: 401 },
-            { id: 901, name: "food network", number: 402 },
-            { id: 272, name: "h&h Discovery", number: 405 },
+            { id: 295, name: "El Gourmet", number: 401 },
+            { id: 901, name: "Food Network", number: 402 },
+            { id: 272, name: "Discovery Home & Health", number: 405 },
             { id: 703, name: "Más Chic", number: 406 },
             { id: 1027, name: "TLC", number: 407 },
             { id: 8417, name: "HGTV", number: 408 },
@@ -262,11 +266,11 @@
             { id: 300, name: "National Geographic", number: 450 },
             { id: 271, name: "Discovery", number: 451 },
             { id: 643, name: "Animal Planet", number: 452 },
-            { id: 725, name: "Theater Discovery", number: 453 },
+            { id: 725, name: "Discovery Theater", number: 453 },
             { id: 301, name: "History", number: 454 },
             { id: 698, name: "History 2", number: 458 },
-            { id: 691, name: "film & arts", number: 457 },
-            { id: 681, name: "Wolrd Discovery", number: 460 },
+            { id: 691, name: "Film & Arts", number: 457 },
+            { id: 681, name: "Discovery World", number: 460 },
             { id: 680, name: "Discovery Science", number: 462 }
         ];
 
@@ -293,8 +297,54 @@
         function updateChannelDisplay(animate = true) {
             const channel = channels[currentIndex];
             
+            // Actualizar número de canal
             document.getElementById('channelNumber').textContent = channel.number;
-            document.getElementById('channelName').textContent = channel.name;
+
+            // Actualizar nombre del canal con tamaño dinámico
+            const channelNameHeader = document.getElementById('channelNameHeader');
+
+            // Canales con salto de línea personalizado
+            const multilineChannels = {
+                'Ciudad Magazine': 'Ciudad\nMagazine',
+                'Discovery Turbo': 'Discovery\nTurbo', 
+                'Studio Universal': 'Studio\nUniversal',
+                'Discovery Home & Health': 'Discovery\nHome & Health',
+                'Discovery World': 'Discovery\nWorld',
+                'Disney Junior': 'Disney\nJunior',
+            };
+
+            // Aplicar nombre con o sin salto de línea
+            const displayName = multilineChannels[channel.name] || channel.name;
+            channelNameHeader.textContent = displayName;
+
+            // Aplicar tamaño de fuente según la longitud del nombre original (sin \n)
+            const nameLength = channel.name.length;
+            channelNameHeader.className = 'channel-name-header';
+
+            // Excepciones específicas
+            const forceMediumExceptions = ['FOX Sports 2', 'FOX Sports 3', 'Diputados TV', 'Universal TV'];
+            const forceLargeExceptions = ['Cartoon Network', 'Studio Universal', 'Discovery Turbo', 'Discovery Theater', 'Discovery World', 'Discovery Science'];
+
+            if (forceMediumExceptions.includes(channel.name)) {
+                channelNameHeader.classList.add('small');
+            } else if (forceLargeExceptions.includes(channel.name)) {
+                channelNameHeader.classList.add('medium');
+            } else if (nameLength <= 10) {
+                channelNameHeader.classList.add('small');
+            } else if (nameLength <= 14) {
+                channelNameHeader.classList.add('medium');
+            } else {
+                channelNameHeader.classList.add('large');
+            }
+            
+            // Actualizar logo
+            const logoContainer = document.getElementById('channelLogo');
+            logoContainer.innerHTML = `
+                <img src="https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.png" 
+                     alt="${channel.name}" 
+                     onerror="this.onerror=null; this.src='https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.webp'; this.onerror=function(){this.onerror=null; this.src='https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.svg'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};};">
+                <span style="font-size: 32px; color: rgba(255,255,255,0.3); display: none;">LOGO</span>
+            `;
             
             // Añadir efecto de cambio rápido
             if (animate) {
@@ -303,16 +353,6 @@
                 void container.offsetWidth; // Forzar reflow
                 container.classList.add('quick-change');
             }
-            
-            // Actualizar estado
-            updateStatus('Navegando...');
-        }
-
-        // Función para actualizar el estado
-        function updateStatus(message) {
-            const indicator = document.getElementById('statusIndicator');
-            indicator.textContent = message;
-            indicator.className = message ? 'status-indicator loading' : 'status-indicator';
         }
 
         // Función para cambiar el canal en Flow
@@ -330,7 +370,6 @@
                 // También intentar cambiar directamente la URL
                 try {
                     window.opener.location.href = newUrl;
-                    updateStatus('Canal cambiado');
                     isChannelChanged = true;
                 } catch(e) {
                     console.log('No se pudo cambiar directamente, usando postMessage');
@@ -443,15 +482,6 @@
                 e.returnValue = '';
             }
         });
-
-        // Intentar fullscreen automático después de cargar
-        setTimeout(() => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('Fullscreen automático no disponible:', err);
-                });
-            }
-        }, 500);
     </script>
 </body>
 </html>
