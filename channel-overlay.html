@@ -167,7 +167,7 @@
     </style>
 </head>
 <body>
-    <div class="version-info">v3.1.5</div>
+    <div class="version-info">v4.1</div>
     
     <div class="channel-info-container">
         <div class="channel-name-header" id="channelNameHeader">Canal</div>
@@ -401,7 +401,7 @@
             progress.className = 'loading-progress';
             progress.style.width = '0%';
             
-            // Programar cambio de canal en Flow (1 segundo)
+            // Programar cambio de canal en Flow (0.5 segundos)
             channelChangeTimeout = setTimeout(() => {
                 updateFlowChannel();
                 // Después de cambiar el canal, mostrar barra de cierre
@@ -409,12 +409,12 @@
                 setTimeout(() => {
                     progress.style.width = '100%';
                 }, 50);
-            }, 1000);
-            
-            // Programar cierre (3 segundos total: 1s para cambiar + 2s adicionales)
+            }, 500);
+
+            // Programar cierre (3.5 segundos total: 0.5s para cambiar + 3s adicionales)
             closeTimeout = setTimeout(() => {
                 window.close();
-            }, 3000);
+            }, 3500);
             
             // Actualizar tiempo de última actividad
             lastActivityTime = Date.now();
@@ -461,17 +461,17 @@
                 const progress = document.getElementById('loadingProgress');
                 progress.style.width = '50%';
                 
-                // Cambiar canal después de 1 segundo
+                // Cambiar canal después de 0.5 segundos
                 channelChangeTimeout = setTimeout(() => {
                     updateFlowChannel();
                     progress.className = 'loading-progress closing';
                     progress.style.width = '100%';
-                }, 1000);
+                }, 500);
                 
-                // Cerrar después de 3 segundos
+                // Cerrar después de 3.5 segundos
                 closeTimeout = setTimeout(() => {
                     window.close();
-                }, 3000);
+                }, 3500);
             }, 100);
         }
 
