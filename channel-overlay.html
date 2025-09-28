@@ -167,7 +167,7 @@
     </style>
 </head>
 <body>
-    <div class="version-info">v4.1.3</div>
+    <div class="version-info">v4.1.4</div>
     
     <div class="channel-info-container">
         <div class="channel-name-header" id="channelNameHeader">Canal</div>
@@ -354,18 +354,17 @@
                 container.classList.add('quick-change');
             }
             
-            // Precargar imágenes del canal siguiente y anterior
-            const nextIndex = (currentIndex + 1) % channels.length;
-            const prevIndex = (currentIndex - 1 + channels.length) % channels.length;
-            
-            [channels[nextIndex], channels[prevIndex]].forEach(channel => {
-                const imgPng = new Image();
-                imgPng.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.png`;
-                
-                const imgWebp = new Image();
-                imgWebp.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.webp`;
-            });
-        }
+            // Precargar TODAS las imágenes una sola vez
+            if (!window.imagesPreloaded) {
+                channels.forEach(channel => {
+                    const imgPng = new Image();
+                    imgPng.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.png`;
+                    
+                    const imgWebp = new Image();
+                    imgWebp.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.webp`;
+                });
+                window.imagesPreloaded = true; // Marcar como precargadas para no repetir
+            }
 
         // Función para cambiar el canal en Flow
         function updateFlowChannel() {
