@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Channel Guide</title>
+    <title>Cambio de canal</title>
+    <link rel="icon" type="image/png" href="https://portal.app.flow.com.ar/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;800;900&display=swap" rel="stylesheet">
     <style>
         * {
@@ -57,7 +58,7 @@
             align-items: center;
             justify-content: flex-end;
             height: 100%;
-            white-space: pre-line; /* Permite saltos de línea */
+            white-space: pre-line;
         }
 
         .channel-name-header.small {
@@ -73,6 +74,33 @@
         .channel-name-header.large {
             font-size: 44px;
             line-height: 47px;
+        }
+
+        .channel-name-header.searching {
+            font-size: 52px;
+            line-height: 54px;
+            color: #ffffff;
+            width: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .search-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 50px;
+            background-color: #00DEA5;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            position: relative;
+            top: -2px;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
         }
 
         .channel-separator {
@@ -99,6 +127,11 @@
             flex-shrink: 0;
         }
 
+        .channel-number.searching {
+            font-size: 40px;
+            color: #00DEA5;
+        }
+
         .channel-container {
             text-align: center;
             animation: fadeIn 0.2s ease-in-out;
@@ -121,12 +154,26 @@
             object-fit: contain;
         }
 
+        .spinner {
+            width: 120px;
+            height: 120px;
+            border: 16px solid rgba(0, 222, 165, 0.3);
+            border-top: 16px solid #00DEA5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .loading-bar {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 6px;
+            height: 12px;
             background: rgba(255, 255, 255, 0.1);
             overflow: hidden;
         }
@@ -143,6 +190,65 @@
             transition: width 2s linear;
         }
 
+        .search-suggestions {
+            position: absolute;
+            top: 150px;
+            right: 30px;
+            border-radius: 12px;
+            padding: 25px 31px;
+            min-width: 625px;
+            max-width: 780px;
+            display: none;
+            z-index: 20;
+        }
+
+        .search-suggestions.visible {
+            display: block;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .suggestion-item {
+            padding: 19px 22px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background: rgba(0, 222, 165, 0.2);
+            border-left: 6px solid #00DEA5;
+            padding-left: 16px;
+        }
+
+        .suggestion-number {
+            font-size: 31px;
+            font-weight: 600;
+            color: #00DEA5;
+            min-width: 62px;
+        }
+
+        .suggestion-name {
+            font-size: 28px;
+            color: #fff;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -154,7 +260,6 @@
             }
         }
 
-        /* Efecto de cambio rápido */
         .quick-change {
             animation: quickFlash 0.15s ease-out;
         }
@@ -164,16 +269,24 @@
             50% { transform: scale(1.05); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
+
+        .search-icon {
+            width: 41px;
+            height: 39px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
-    <div class="version-info">v4.1.5</div>
+    <div class="version-info">v5.1.2</div>
     
     <div class="channel-info-container">
         <div class="channel-name-header" id="channelNameHeader">Canal</div>
         <div class="channel-separator"></div>
         <div class="channel-number" id="channelNumber">--</div>
     </div>
+    
+    <div class="search-suggestions" id="searchSuggestions"></div>
     
     <div class="channel-container" id="channelContainer">
         <div class="channel-logo" id="channelLogo">
@@ -279,11 +392,20 @@
         let closeTimeout = null;
         let isChannelChanged = false;
         let lastActivityTime = Date.now();
+        let isWritingNumber = false;
+        let isSearching = false;
+        let writingTimeout = null;
+        let currentWrittenNumber = '';
+        let currentSearchText = '';
+        let cursorPosition = 0;
+        let searchResults = [];
+        let selectedSuggestionIndex = 0;
 
         // Obtener parámetros de URL
         const urlParams = new URLSearchParams(window.location.search);
         const startChannelId = parseInt(urlParams.get('channelId'));
         const initialDirection = urlParams.get('direction');
+        const writingNumber = urlParams.get('writing');
 
         // Encontrar el índice inicial
         if (startChannelId) {
@@ -293,17 +415,345 @@
             }
         }
 
+        // Función para normalizar texto (quitar acentos, espacios, convertir a minúsculas)
+        function normalizeText(text) {
+            return text
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, "");
+        }
+
+        // Función para calcular similitud entre dos strings (fuzzy matching simple)
+        function calculateSimilarity(search, target) {
+            const normalizedSearch = normalizeText(search);
+            const normalizedTarget = normalizeText(target);
+            
+            // Si empieza con el texto buscado, prioridad máxima
+            if (normalizedTarget.startsWith(normalizedSearch)) {
+                return 1000 + normalizedSearch.length;
+            }
+            
+            // Si contiene el texto buscado
+            if (normalizedTarget.includes(normalizedSearch)) {
+                return 500 + normalizedSearch.length;
+            }
+            
+            // Fuzzy matching: contar letras en común en orden
+            let score = 0;
+            let searchIndex = 0;
+            
+            for (let i = 0; i < normalizedTarget.length && searchIndex < normalizedSearch.length; i++) {
+                if (normalizedTarget[i] === normalizedSearch[searchIndex]) {
+                    score += 10;
+                    searchIndex++;
+                }
+            }
+            
+            // Si se encontraron todas las letras en orden
+            if (searchIndex === normalizedSearch.length) {
+                return score;
+            }
+            
+            return 0;
+        }
+
+        // Función para buscar canales
+        function searchChannels(query) {
+            if (!query || query.trim() === '') {
+                return [];
+            }
+
+            const results = channels
+                .map(channel => ({
+                    channel: channel,
+                    score: calculateSimilarity(query, channel.name)
+                }))
+                .filter(result => result.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5)
+                .map(result => result.channel);
+
+            return results;
+        }
+
+        // Función para mostrar sugerencias de búsqueda
+        function showSearchSuggestions(results) {
+            const container = document.getElementById('searchSuggestions');
+            
+            if (results.length === 0) {
+                container.classList.remove('visible');
+                return;
+            }
+
+            container.innerHTML = results.map((channel, index) => `
+                <div class="suggestion-item ${index === selectedSuggestionIndex ? 'selected' : ''}" data-index="${index}">
+                    <span class="suggestion-number">${channel.number}</span>
+                    <span class="suggestion-name">${channel.name}</span>
+                </div>
+            `).join('');
+
+            container.classList.add('visible');
+
+            // Agregar eventos de click
+            container.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    selectSuggestion(index);
+                });
+            });
+        }
+
+        // Función para ocultar sugerencias
+        function hideSearchSuggestions() {
+            document.getElementById('searchSuggestions').classList.remove('visible');
+        }
+
+        // Función para buscar canal por número
+        function findChannelByNumber(number) {
+            return channels.find(ch => ch.number === parseInt(number));
+        }
+
+        // Función para mostrar spinner de carga
+        function showLoadingSpinner() {
+            const logoContainer = document.getElementById('channelLogo');
+            logoContainer.innerHTML = '<div class="spinner"></div>';
+        }
+
+        // Función para actualizar display durante búsqueda de texto
+        function updateSearchDisplay(searchText) {
+            isSearching = true;
+            currentSearchText = searchText;
+            
+            clearTimeout(closeTimeout);
+            clearTimeout(channelChangeTimeout);
+            
+            const progress = document.getElementById('loadingProgress');
+            progress.style.width = '0%';
+            progress.className = 'loading-progress';
+            
+            showLoadingSpinner();
+            
+            const channelNumber = document.getElementById('channelNumber');
+            const channelNameHeader = document.getElementById('channelNameHeader');
+            
+            channelNumber.innerHTML = '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 49 47" width="51" height="49" style="enable-background:new 0 0 49 47;" xml:space="preserve"> <style type="text/css">.st0{fill:#FFFFFF;}</style><path class="st0" d="M47.8,40.2L36.5,28.9c1.6-2.8,2.5-6,2.5-9.5C39,8.7,30.3,0,19.5,0C8.8,0,0,8.7,0,19.4 c0,10.8,8.8,19.4,19.5,19.4c4.4,0,8.5-1.5,11.7-3.9l10.9,10.9c1.6,1.6,4.1,1.6,5.7,0C49.4,44.3,49.4,41.7,47.8,40.2z M19.5,30.9 C13.1,30.9,8,25.8,8,19.4C8,13.1,13.1,8,19.5,8C25.9,8,31,13.1,31,19.4C31,25.8,25.9,30.9,19.5,30.9z"/></svg>';
+            channelNumber.className = 'channel-number searching';
+            
+            // Envolver en un div para que word-wrap funcione con flexbox
+            const before = searchText.slice(0, cursorPosition);
+            const after = searchText.slice(cursorPosition);
+            channelNameHeader.innerHTML = `<div style="word-wrap: break-word; overflow-wrap: break-word; text-align: right; width: 100%;">${before}<span class="search-cursor"></span>${after}</div>`;
+            channelNameHeader.className = 'channel-name-header searching';
+            
+            searchResults = searchChannels(searchText);
+            selectedSuggestionIndex = 0;
+            showSearchSuggestions(searchResults);
+        }
+
+        // Función para seleccionar una sugerencia
+        function selectSuggestion(index) {
+            if (index >= 0 && index < searchResults.length) {
+                const selectedChannel = searchResults[index];
+                const targetIndex = channels.findIndex(ch => ch.id === selectedChannel.id);
+                
+                if (targetIndex !== -1) {
+                    currentIndex = targetIndex;
+                    cancelSearch();
+                    updateChannelDisplay();
+                    
+                    // Iniciar proceso de cambio
+                    const progress = document.getElementById('loadingProgress');
+                    progress.className = 'loading-progress';
+                    progress.style.width = '0%';
+                    
+                    channelChangeTimeout = setTimeout(() => {
+                        updateFlowChannel();
+                        progress.className = 'loading-progress closing';
+                        setTimeout(() => {
+                            progress.style.width = '100%';
+                        }, 50);
+                    }, 1000);
+
+                    closeTimeout = setTimeout(() => {
+                        window.close();
+                    }, 4000);
+                }
+            }
+        }
+
+        // Función para confirmar búsqueda automáticamente
+        function confirmSearch() {
+            if (searchResults.length > 0) {
+                selectSuggestion(selectedSuggestionIndex);
+            } else {
+                cancelSearch();
+            }
+        }
+
+        // Función para cancelar búsqueda
+        function cancelSearch() {
+            isSearching = false;
+            currentSearchText = '';
+            cursorPosition = 0;
+            searchResults = [];
+            selectedSuggestionIndex = 0;
+            clearTimeout(writingTimeout);
+            hideSearchSuggestions();
+            
+            document.getElementById('channelNumber').className = 'channel-number';
+            const channelNameHeader = document.getElementById('channelNameHeader');
+            channelNameHeader.className = 'channel-name-header';
+            channelNameHeader.innerHTML = ''; // Limpiar el HTML
+            
+            updateChannelDisplay();
+        }
+
+        // Función para actualizar display durante escritura de números
+        function updateWritingDisplay(writtenNumber) {
+            isWritingNumber = true;
+            currentWrittenNumber = writtenNumber;
+            
+            clearTimeout(closeTimeout);
+            
+            const progress = document.getElementById('loadingProgress');
+            progress.style.width = '0%';
+            progress.className = 'loading-progress';
+            
+            showLoadingSpinner();
+            
+            document.getElementById('channelNumber').textContent = writtenNumber;
+            
+            const targetChannel = findChannelByNumber(writtenNumber);
+            const channelNameHeader = document.getElementById('channelNameHeader');
+            
+            if (targetChannel) {
+                const multilineChannels = {
+                    'Ciudad Magazine': 'Ciudad\nMagazine',
+                    'Discovery Turbo': 'Discovery\nTurbo', 
+                    'Studio Universal': 'Studio\nUniversal',
+                    'Discovery Home & Health': 'Discovery\nHome & Health',
+                    'Discovery World': 'Discovery\nWorld',
+                    'Disney Junior': 'Disney\nJunior',
+                };
+                
+                const displayName = multilineChannels[targetChannel.name] || targetChannel.name;
+                channelNameHeader.textContent = displayName;
+                
+                const nameLength = targetChannel.name.length;
+                channelNameHeader.className = 'channel-name-header';
+                
+                const forceMediumExceptions = ['FOX Sports 2', 'FOX Sports 3', 'Diputados TV', 'Universal TV'];
+                const forceLargeExceptions = ['Cartoon Network', 'Studio Universal', 'Discovery Turbo', 'Discovery Theater', 'Discovery World', 'Discovery Science'];
+
+                if (forceMediumExceptions.includes(targetChannel.name)) {
+                    channelNameHeader.classList.add('small');
+                } else if (forceLargeExceptions.includes(targetChannel.name)) {
+                    channelNameHeader.classList.add('medium');
+                } else if (nameLength <= 10) {
+                    channelNameHeader.classList.add('small');
+                } else if (nameLength <= 14) {
+                    channelNameHeader.classList.add('medium');
+                } else {
+                    channelNameHeader.classList.add('large');
+                }
+            } else {
+                channelNameHeader.textContent = '-';
+                channelNameHeader.className = 'channel-name-header large';
+            }
+        }
+
+        // Función para confirmar cambio de canal por número
+        function confirmChannelChange() {
+            const targetChannel = findChannelByNumber(currentWrittenNumber);
+            if (targetChannel) {
+                const targetIndex = channels.findIndex(ch => ch.number === targetChannel.number);
+                if (targetIndex !== -1) {
+                    currentIndex = targetIndex;
+                    isWritingNumber = false;
+                    currentWrittenNumber = '';
+                    
+                    updateChannelDisplay();
+                    
+                    const progress = document.getElementById('loadingProgress');
+                    progress.className = 'loading-progress';
+                    progress.style.width = '0%';
+                    
+                    channelChangeTimeout = setTimeout(() => {
+                        updateFlowChannel();
+                        progress.className = 'loading-progress closing';
+                        setTimeout(() => {
+                            progress.style.width = '100%';
+                        }, 50);
+                    }, 1000);
+
+                    closeTimeout = setTimeout(() => {
+                        window.close();
+                    }, 4000);
+                }
+            } else {
+                cancelNumberWriting();
+            }
+        }
+
+        // Función para cancelar escritura de número
+        function cancelNumberWriting() {
+            isWritingNumber = false;
+            currentWrittenNumber = '';
+            clearTimeout(writingTimeout);
+            updateChannelDisplay();
+        }
+
+        // Función para manejar dígitos escritos
+        function handleDigitInput(digit) {
+            if (currentWrittenNumber.length >= 4) {
+                cancelNumberWriting();
+                return;
+            }
+            
+            currentWrittenNumber += digit;
+            updateWritingDisplay(currentWrittenNumber);
+            
+            clearTimeout(writingTimeout);
+            clearTimeout(channelChangeTimeout);
+            
+            const waitTime = currentWrittenNumber.length === 1 ? 2000 : 1000;
+            
+            writingTimeout = setTimeout(() => {
+                confirmChannelChange();
+            }, waitTime);
+        }
+
+        // Función para manejar letras escritas
+        function handleLetterInput(char) {
+            // Limitar a 32 caracteres
+            if (currentSearchText.length >= 31) {
+                return;
+            }
+            
+            const before = currentSearchText.slice(0, cursorPosition);
+            const after = currentSearchText.slice(cursorPosition);
+            currentSearchText = before + char + after;
+            cursorPosition++;
+            
+            updateSearchDisplay(currentSearchText);
+            
+            clearTimeout(writingTimeout);
+            
+            writingTimeout = setTimeout(() => {
+                confirmSearch();
+            }, 2000);
+        }
+
         // Función para actualizar el display
         function updateChannelDisplay(animate = true) {
             const channel = channels[currentIndex];
             
-            // Actualizar número de canal
             document.getElementById('channelNumber').textContent = channel.number;
+            document.getElementById('channelNumber').className = 'channel-number';
 
-            // Actualizar nombre del canal con tamaño dinámico
             const channelNameHeader = document.getElementById('channelNameHeader');
 
-            // Canales con salto de línea personalizado
             const multilineChannels = {
                 'Ciudad Magazine': 'Ciudad\nMagazine',
                 'Discovery Turbo': 'Discovery\nTurbo', 
@@ -313,15 +763,12 @@
                 'Disney Junior': 'Disney\nJunior',
             };
 
-            // Aplicar nombre con o sin salto de línea
             const displayName = multilineChannels[channel.name] || channel.name;
             channelNameHeader.textContent = displayName;
 
-            // Aplicar tamaño de fuente según la longitud del nombre original (sin \n)
             const nameLength = channel.name.length;
             channelNameHeader.className = 'channel-name-header';
 
-            // Excepciones específicas
             const forceMediumExceptions = ['FOX Sports 2', 'FOX Sports 3', 'Diputados TV', 'Universal TV'];
             const forceLargeExceptions = ['Cartoon Network', 'Studio Universal', 'Discovery Turbo', 'Discovery Theater', 'Discovery World', 'Discovery Science'];
 
@@ -337,49 +784,43 @@
                 channelNameHeader.classList.add('large');
             }
             
-            // Actualizar logo
             const logoContainer = document.getElementById('channelLogo');
             logoContainer.innerHTML = `
-                <img src="https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.png" 
+                <img src="https://cdn.jsdelivr.net/gh/daniel-pernigotti/flow-channel-guide/logos/${channel.id}.png" 
                      alt="${channel.name}" 
-                     onerror="this.onerror=null; this.src='https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.webp'; this.onerror=function(){this.onerror=null; this.src='https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.svg'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};};">
+                     onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/gh/daniel-pernigotti/flow-channel-guide/logos/${channel.id}.webp'; this.onerror=function(){this.onerror=null; this.src='https://cdn.jsdelivr.net/gh/daniel-pernigotti/flow-channel-guide/logos/${channel.id}.svg'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};};">
                 <span style="font-size: 32px; color: rgba(255,255,255,0.3); display: none;">LOGO</span>
             `;
             
-            // Añadir efecto de cambio rápido
             if (animate) {
                 const container = document.getElementById('channelContainer');
                 container.classList.remove('quick-change');
-                void container.offsetWidth; // Forzar reflow
+                void container.offsetWidth;
                 container.classList.add('quick-change');
             }
             
-            // Precargar TODAS las imágenes una sola vez
             if (!window.imagesPreloaded) {
                 channels.forEach(channel => {
                     const imgPng = new Image();
-                    imgPng.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.png`;
+                    imgPng.src = `https://cdn.jsdelivr.net/gh/daniel-pernigotti/flow-channel-guide/logos/${channel.id}.png`;
                     
                     const imgWebp = new Image();
-                    imgWebp.src = `https://daniel-pernigotti.github.io/flow-channel-guide/logos/${channel.id}.webp`;
+                    imgWebp.src = `https://cdn.jsdelivr.net/gh/daniel-pernigotti/flow-channel-guide/logos/${channel.id}.webp`;
                 });
-                window.imagesPreloaded = true; // Marcar como precargadas para no repetir
+                window.imagesPreloaded = true;
             }
         }
 
-        // Función para cambiar el canal en Flow
         function updateFlowChannel() {
             const channel = channels[currentIndex];
             const newUrl = `https://portal.app.flow.com.ar/epg?channelId=${channel.id}`;
             
-            // Notificar a la ventana padre (Flow) que cambie el canal
             if (window.opener && !window.opener.closed) {
                 window.opener.postMessage({
                     action: 'updateChannel',
                     channelId: channel.id
                 }, '*');
                 
-                // También intentar cambiar directamente la URL
                 try {
                     window.opener.location.href = newUrl;
                     isChannelChanged = true;
@@ -389,61 +830,213 @@
             }
         }
 
-        // Función para manejar el cambio de canal
         function changeChannel(direction) {
-            // Resetear timeouts
+            if (isWritingNumber) {
+                cancelNumberWriting();
+                return;
+            }
+
             clearTimeout(channelChangeTimeout);
             clearTimeout(closeTimeout);
             
-            // Resetear flag de canal cambiado
             isChannelChanged = false;
             
-            // Cambiar índice
             if (direction === 'up') {
                 currentIndex = (currentIndex + 1) % channels.length;
             } else {
                 currentIndex = (currentIndex - 1 + channels.length) % channels.length;
             }
             
-            // Actualizar display
             updateChannelDisplay();
             
-            // Resetear barra de progreso
             const progress = document.getElementById('loadingProgress');
             progress.className = 'loading-progress';
             progress.style.width = '0%';
             
-            // Programar cambio de canal en Flow (1 segundo)
             channelChangeTimeout = setTimeout(() => {
                 updateFlowChannel();
-                // Después de cambiar el canal, mostrar barra de cierre
                 progress.className = 'loading-progress closing';
                 setTimeout(() => {
                     progress.style.width = '100%';
                 }, 50);
             }, 1000);
 
-            // Programar cierre (3.5 segundos total: 0.5s para cambiar + 3s adicionales)
             closeTimeout = setTimeout(() => {
                 window.close();
             }, 4000);
             
-            // Actualizar tiempo de última actividad
             lastActivityTime = Date.now();
         }
 
-        // Manejar teclas
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') {
+            // Números
+            if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
-                changeChannel('up');
-            } else if (e.key === 'ArrowDown') {
+                if (isSearching) {
+                    cancelSearch();
+                }
+                handleDigitInput(e.key);
+            }
+            // Letras y ñ
+            else if (e.key.length === 1 && e.key.match(/[a-zñáéíóú]/i)) {
                 e.preventDefault();
-                changeChannel('down');
-            } else if (e.key === 'Escape') {
+                if (isWritingNumber) {
+                    cancelNumberWriting();
+                }
+                handleLetterInput(e.key);
+            }
+            // Espacio (solo en búsqueda)
+            else if (e.key === ' ') {
+                if (isSearching) {
+                    e.preventDefault();
+                    handleLetterInput(' ');
+                }
+            }
+            // Flechas Arriba/Abajo
+            else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                window.close();
-            } else if (e.key === 'F11') {
+                if (isSearching) {
+                    selectedSuggestionIndex = (selectedSuggestionIndex - 1 + searchResults.length) % searchResults.length;
+                    showSearchSuggestions(searchResults);
+                    clearTimeout(writingTimeout);
+                } else if (!isWritingNumber) {
+                    changeChannel('up');
+                }
+            }
+            else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (isSearching) {
+                    selectedSuggestionIndex = (selectedSuggestionIndex + 1) % searchResults.length;
+                    showSearchSuggestions(searchResults);
+                    clearTimeout(writingTimeout);
+                } else if (!isWritingNumber) {
+                    changeChannel('down');
+                }
+            }
+            // Flechas Izquierda/Derecha (movimiento de cursor en búsqueda)
+            else if (e.key === 'ArrowLeft') {
+                if (isSearching) {
+                    e.preventDefault();
+                    if (cursorPosition > 0) {
+                        cursorPosition--;
+                        updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                    }
+                }
+            }
+            else if (e.key === 'ArrowRight') {
+                if (isSearching) {
+                    e.preventDefault();
+                    if (cursorPosition < currentSearchText.length) {
+                        cursorPosition++;
+                        updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                    }
+                }
+            }
+            // Home (ir al inicio en búsqueda)
+            else if (e.key === 'Home') {
+                if (isSearching) {
+                    e.preventDefault();
+                    cursorPosition = 0;
+                    updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                }
+            }
+            // End (ir al final en búsqueda)
+            else if (e.key === 'End') {
+                if (isSearching) {
+                    e.preventDefault();
+                    cursorPosition = currentSearchText.length;
+                    updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                }
+            }
+            // Enter
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (isSearching) {
+                    clearTimeout(writingTimeout);
+                    confirmSearch();
+                } else if (isWritingNumber) {
+                    clearTimeout(writingTimeout);
+                    confirmChannelChange();
+                }
+            }
+            // Escape
+            else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (isSearching) {
+                    cancelSearch();
+                } else if (isWritingNumber) {
+                    cancelNumberWriting();
+                } else {
+                    window.close();
+                }
+            }
+            // Backspace y Ctrl+Backspace
+            else if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (isSearching && currentSearchText.length > 0) {
+                    if (e.ctrlKey) {
+                        // Ctrl+Backspace: borrar palabra anterior
+                        const before = currentSearchText.slice(0, cursorPosition);
+                        const after = currentSearchText.slice(cursorPosition);
+                        const words = before.trimEnd().split(/\s+/);
+                        words.pop();
+                        const newBefore = words.join(' ') + (words.length > 0 ? ' ' : '');
+                        currentSearchText = newBefore + after;
+                        cursorPosition = newBefore.length;
+                    } else {
+                        // Backspace normal: borrar carácter anterior
+                        if (cursorPosition > 0) {
+                            const before = currentSearchText.slice(0, cursorPosition - 1);
+                            const after = currentSearchText.slice(cursorPosition);
+                            currentSearchText = before + after;
+                            cursorPosition--;
+                        }
+                    }
+                    
+                    if (currentSearchText.length === 0) {
+                        cancelSearch();
+                    } else {
+                        updateSearchDisplay(currentSearchText);
+                        clearTimeout(writingTimeout);
+                        writingTimeout = setTimeout(() => {
+                            confirmSearch();
+                        }, 2000);
+                    }
+                } else if (isWritingNumber && currentWrittenNumber.length > 0) {
+                    currentWrittenNumber = currentWrittenNumber.slice(0, -1);
+                    if (currentWrittenNumber.length === 0) {
+                        cancelNumberWriting();
+                    } else {
+                        updateWritingDisplay(currentWrittenNumber);
+                        clearTimeout(writingTimeout);
+                        const waitTime = currentWrittenNumber.length === 1 ? 2000 : 1000;
+                        writingTimeout = setTimeout(() => {
+                            confirmChannelChange();
+                        }, waitTime);
+                    }
+                }
+            }
+            // Delete (borrar carácter siguiente en búsqueda)
+            else if (e.key === 'Delete') {
+                if (isSearching && cursorPosition < currentSearchText.length) {
+                    e.preventDefault();
+                    const before = currentSearchText.slice(0, cursorPosition);
+                    const after = currentSearchText.slice(cursorPosition + 1);
+                    currentSearchText = before + after;
+                    
+                    if (currentSearchText.length === 0) {
+                        cancelSearch();
+                    } else {
+                        updateSearchDisplay(currentSearchText);
+                        clearTimeout(writingTimeout);
+                        writingTimeout = setTimeout(() => {
+                            confirmSearch();
+                        }, 2000);
+                    }
+                }
+            }
+            // F11
+            else if (e.key === 'F11') {
                 e.preventDefault();
                 if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen().catch(err => {
@@ -455,41 +1048,45 @@
             }
         });
 
-        // Escuchar mensajes del script principal
         window.addEventListener('message', (event) => {
             if (event.data && event.data.action === 'changeChannel') {
                 changeChannel(event.data.direction);
+            } else if (event.data && event.data.action === 'writeNumber') {
+                handleDigitInput(event.data.digit);
             }
         });
 
-        // Inicialización
-        updateChannelDisplay(false);
+        if (writingNumber) {
+            updateWritingDisplay(writingNumber);
+            currentWrittenNumber = writingNumber;
+            
+            const waitTime = writingNumber.length === 1 ? 2000 : 1000;
+            writingTimeout = setTimeout(() => {
+                confirmChannelChange();
+            }, waitTime);
+        } else {
+            updateChannelDisplay(false);
+        }
         
-        // Si hay una dirección inicial (viene de Flow), aplicar el cambio automático
-        if (initialDirection) {
-            // Mostrar el canal actual primero y luego iniciar el proceso de cambio
+        if (initialDirection && !writingNumber) {
             setTimeout(() => {
-                // Iniciar barra de carga para cambio de canal
                 const progress = document.getElementById('loadingProgress');
                 progress.style.width = '50%';
                 
-                // Cambiar canal después de 1 segundo
                 channelChangeTimeout = setTimeout(() => {
                     updateFlowChannel();
                     progress.className = 'loading-progress closing';
                     progress.style.width = '100%';
                 }, 1000);
                 
-                // Cerrar después de 3.5 segundos
                 closeTimeout = setTimeout(() => {
                     window.close();
                 }, 4000);
             }, 100);
         }
 
-        // Prevenir que se cierre la ventana accidentalmente
         window.addEventListener('beforeunload', (e) => {
-            if (!isChannelChanged && Date.now() - lastActivityTime < 5000) {
+            if ((!isChannelChanged && Date.now() - lastActivityTime < 5000) || isWritingNumber || isSearching) {
                 e.preventDefault();
                 e.returnValue = '';
             }
