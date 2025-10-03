@@ -127,11 +127,6 @@
             flex-shrink: 0;
         }
 
-        .channel-number.searching {
-            font-size: 40px;
-            color: #00DEA5;
-        }
-
         .channel-container {
             text-align: center;
             animation: fadeIn 0.2s ease-in-out;
@@ -173,15 +168,15 @@
         }
 
         .spinner svg {
-            width: 50px;
-            height: 50px;
+            width: 115px;
+            height: 115px;
             position: absolute;
             top: 50%;
             left: 50%;
             margin-left: -25px;
             margin-top: -25px;
             filter: drop-shadow(0 0 8px rgba(0, 222, 165, 0.5));
-            animation: orbit 1.5s linear infinite;
+            animation: orbit 1.7s linear infinite;
             transform-origin: center;
         }
 
@@ -191,10 +186,10 @@
 
         @keyframes orbit {
             0% {
-                transform: rotate(0deg) translateX(35px) rotate(0deg);
+                transform: rotate(0deg) translateX(40px) rotate(0deg);
             }
             100% {
-                transform: rotate(360deg) translateX(35px) rotate(-360deg);
+                transform: rotate(360deg) translateX(40px) rotate(-360deg);
             }
         }
 
@@ -308,7 +303,7 @@
     </style>
 </head>
 <body>
-    <div class="version-info">v5.2.2</div>
+    <div class="version-info">v5.3</div>
     
     <div class="channel-info-container">
         <div class="channel-name-header" id="channelNameHeader">Canal</div>
@@ -436,6 +431,7 @@
         const startChannelId = parseInt(urlParams.get('channelId'));
         const initialDirection = urlParams.get('direction');
         const writingNumber = urlParams.get('writing');
+        const searchingText = urlParams.get('searching');
 
         // Encontrar el índice inicial
         if (startChannelId) {
@@ -571,8 +567,16 @@
             const channelNumber = document.getElementById('channelNumber');
             const channelNameHeader = document.getElementById('channelNameHeader');
             
-            channelNumber.innerHTML = '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 49 47" width="51" height="49" style="enable-background:new 0 0 49 47;" xml:space="preserve"> <style type="text/css">.st0{fill:#FFFFFF;}</style><path class="st0" d="M47.8,40.2L36.5,28.9c1.6-2.8,2.5-6,2.5-9.5C39,8.7,30.3,0,19.5,0C8.8,0,0,8.7,0,19.4 c0,10.8,8.8,19.4,19.5,19.4c4.4,0,8.5-1.5,11.7-3.9l10.9,10.9c1.6,1.6,4.1,1.6,5.7,0C49.4,44.3,49.4,41.7,47.8,40.2z M19.5,30.9 C13.1,30.9,8,25.8,8,19.4C8,13.1,13.1,8,19.5,8C25.9,8,31,13.1,31,19.4C31,25.8,25.9,30.9,19.5,30.9z"/></svg>';
-            channelNumber.className = 'channel-number searching';
+            searchResults = searchChannels(searchText);
+            selectedSuggestionIndex = 0;
+
+            // Mostrar el número del canal seleccionado o guión si no hay resultados
+            if (searchResults.length > 0) {
+                channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
+            } else {
+                channelNumber.textContent = '-';
+            }
+            channelNumber.className = 'channel-number';
             
             // Envolver en un div para que word-wrap funcione con flexbox
             const before = searchText.slice(0, cursorPosition);
@@ -580,8 +584,6 @@
             channelNameHeader.innerHTML = `<div style="word-wrap: break-word; overflow-wrap: break-word; text-align: right; width: 100%;">${before}<span class="search-cursor"></span>${after}</div>`;
             channelNameHeader.className = 'channel-name-header searching';
             
-            searchResults = searchChannels(searchText);
-            selectedSuggestionIndex = 0;
             showSearchSuggestions(searchResults);
         }
 
@@ -596,26 +598,22 @@
                     cancelSearch();
                     updateChannelDisplay();
                     
-                    // Iniciar proceso de cambio
-                    const progress = document.getElementById('loadingProgress');
-                    progress.className = 'loading-progress';
-                    progress.style.width = '0%';
+                    // Cambio inmediato para búsquedas
+                    updateFlowChannel();
                     
-                    channelChangeTimeout = setTimeout(() => {
-                        updateFlowChannel();
-                        progress.className = 'loading-progress closing';
-                        setTimeout(() => {
-                            progress.style.width = '100%';
-                        }, 50);
-                    }, 1000);
+                    const progress = document.getElementById('loadingProgress');
+                    progress.className = 'loading-progress closing';
+                    progress.style.width = '0%';
+                    setTimeout(() => {
+                        progress.style.width = '100%';
+                    }, 10);
 
                     closeTimeout = setTimeout(() => {
                         window.close();
-                    }, 4000);
+                    }, 3000); // 3 segundos
                 }
             }
         }
-
         // Función para confirmar búsqueda automáticamente
         function confirmSearch() {
             if (searchResults.length > 0) {
@@ -767,7 +765,12 @@
             
             const before = currentSearchText.slice(0, cursorPosition);
             const after = currentSearchText.slice(cursorPosition);
-            currentSearchText = before + char + after;
+            
+            // Capitalizar si es el inicio o después de un espacio
+            const shouldCapitalize = cursorPosition === 0 || currentSearchText[cursorPosition - 1] === ' ';
+            const charToAdd = shouldCapitalize ? char.toUpperCase() : char.toLowerCase();
+            
+            currentSearchText = before + charToAdd + after;
             cursorPosition++;
             
             updateSearchDisplay(currentSearchText);
@@ -938,6 +941,11 @@
                 if (isSearching) {
                     selectedSuggestionIndex = (selectedSuggestionIndex - 1 + searchResults.length) % searchResults.length;
                     showSearchSuggestions(searchResults);
+                    // Actualizar el número mostrado
+                    const channelNumber = document.getElementById('channelNumber');
+                    if (searchResults.length > 0) {
+                        channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
+                    }
                     clearTimeout(writingTimeout);
                 } else if (!isWritingNumber) {
                     changeChannel('up');
@@ -948,6 +956,11 @@
                 if (isSearching) {
                     selectedSuggestionIndex = (selectedSuggestionIndex + 1) % searchResults.length;
                     showSearchSuggestions(searchResults);
+                    // Actualizar el número mostrado
+                    const channelNumber = document.getElementById('channelNumber');
+                    if (searchResults.length > 0) {
+                        channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
+                    }
                     clearTimeout(writingTimeout);
                 } else if (!isWritingNumber) {
                     changeChannel('down');
@@ -1094,9 +1107,20 @@
             } else if (event.data && event.data.action === 'writeNumber') {
                 handleDigitInput(event.data.digit);
             }
+            else if (event.data && event.data.action === 'writeLetter') {
+                handleLetterInput(event.data.char);
+            }
         });
 
-        if (writingNumber) {
+        if (searchingText) {
+            currentSearchText = decodeURIComponent(searchingText);
+            cursorPosition = currentSearchText.length;
+            updateSearchDisplay(currentSearchText);
+            
+            writingTimeout = setTimeout(() => {
+                confirmSearch();
+            }, 2000);
+        } else if (writingNumber) {
             updateWritingDisplay(writingNumber);
             currentWrittenNumber = writingNumber;
             
@@ -1108,7 +1132,7 @@
             updateChannelDisplay(false);
         }
         
-        if (initialDirection && !writingNumber) {
+        if (initialDirection && !writingNumber && !searchingText) {
             setTimeout(() => {
                 const progress = document.getElementById('loadingProgress');
                 progress.style.width = '50%';
