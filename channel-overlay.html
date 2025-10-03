@@ -598,19 +598,21 @@
                     cancelSearch();
                     updateChannelDisplay();
                     
-                    // Cambio inmediato para búsquedas
-                    updateFlowChannel();
-                    
                     const progress = document.getElementById('loadingProgress');
-                    progress.className = 'loading-progress closing';
+                    progress.className = 'loading-progress';
                     progress.style.width = '0%';
-                    setTimeout(() => {
-                        progress.style.width = '100%';
-                    }, 10);
+                    
+                    channelChangeTimeout = setTimeout(() => {
+                        updateFlowChannel();
+                        progress.className = 'loading-progress closing';
+                        setTimeout(() => {
+                            progress.style.width = '100%';
+                        }, 50);
+                    }, 100); // Cambio rápido pero no inmediato
 
                     closeTimeout = setTimeout(() => {
                         window.close();
-                    }, 3000); // 3 segundos
+                    }, 2000); // Cerrar más rápido
                 }
             }
         }
@@ -876,6 +878,11 @@
         function changeChannel(direction) {
             if (isWritingNumber) {
                 cancelNumberWriting();
+                return;
+            }
+            
+            if (isSearching) {
+                cancelSearch();
                 return;
             }
 
