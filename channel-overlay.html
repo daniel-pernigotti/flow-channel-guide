@@ -294,16 +294,10 @@
             50% { transform: scale(1.05); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
-
-        .search-icon {
-            width: 41px;
-            height: 39px;
-            display: inline-block;
-        }
     </style>
 </head>
 <body>
-    <div class="version-info">v5.3.1</div>
+    <div class="version-info">v5.3.2</div>
     
     <div class="channel-info-container">
         <div class="channel-name-header" id="channelNameHeader">Canal</div>
@@ -313,6 +307,7 @@
     
     <div class="search-suggestions" id="searchSuggestions"></div>
     
+    <div class="channel-container" id="channelContainer">
         <div class="channel-logo" id="channelLogo">
             <div class="spinner hidden"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 49 47" style="enable-background:new 0 0 49 47;"><style>.st0{fill:#00DEA5;}</style><path class="st0" d="M47.8,40.2L36.5,28.9c1.6-2.8,2.5-6,2.5-9.5C39,8.7,30.3,0,19.5,0C8.8,0,0,8.7,0,19.4 c0,10.8,8.8,19.4,19.5,19.4c4.4,0,8.5-1.5,11.7-3.9l10.9,10.9c1.6,1.6,4.1,1.6,5.7,0C49.4,44.3,49.4,41.7,47.8,40.2z M19.5,30.9 C13.1,30.9,8,25.8,8,19.4C8,13.1,13.1,8,19.5,8C25.9,8,31,13.1,31,19.4C31,25.8,25.9,30.9,19.5,30.9z"/></svg></div>
             <span style="font-size: 32px; color: rgba(255,255,255,0.3);">LOGO</span>
@@ -324,7 +319,6 @@
     </div>
 
     <script>
-        // Lista completa de canales
         const channels = [
             { id: 66, name: "América", number: 9 },
             { id: 69, name: "Telefe", number: 10 },
@@ -426,14 +420,12 @@
         let searchResults = [];
         let selectedSuggestionIndex = 0;
 
-        // Obtener parámetros de URL
         const urlParams = new URLSearchParams(window.location.search);
         const startChannelId = parseInt(urlParams.get('channelId'));
         const initialDirection = urlParams.get('direction');
         const writingNumber = urlParams.get('writing');
         const searchingText = urlParams.get('searching');
 
-        // Encontrar el índice inicial
         if (startChannelId) {
             const index = channels.findIndex(ch => ch.id === startChannelId);
             if (index !== -1) {
@@ -441,31 +433,22 @@
             }
         }
 
-        // Función para normalizar texto (quitar acentos, espacios, convertir a minúsculas)
         function normalizeText(text) {
-            return text
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/\s+/g, "");
+            return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
         }
 
-        // Función para calcular similitud entre dos strings (fuzzy matching simple)
         function calculateSimilarity(search, target) {
             const normalizedSearch = normalizeText(search);
             const normalizedTarget = normalizeText(target);
             
-            // Si empieza con el texto buscado, prioridad máxima
             if (normalizedTarget.startsWith(normalizedSearch)) {
                 return 1000 + normalizedSearch.length;
             }
             
-            // Si contiene el texto buscado
             if (normalizedTarget.includes(normalizedSearch)) {
                 return 500 + normalizedSearch.length;
             }
             
-            // Fuzzy matching: contar letras en común en orden
             let score = 0;
             let searchIndex = 0;
             
@@ -476,7 +459,6 @@
                 }
             }
             
-            // Si se encontraron todas las letras en orden
             if (searchIndex === normalizedSearch.length) {
                 return score;
             }
@@ -484,7 +466,6 @@
             return 0;
         }
 
-        // Función para buscar canales
         function searchChannels(query) {
             if (!query || query.trim() === '') {
                 return [];
@@ -502,8 +483,6 @@
 
             return results;
         }
-
-        // Función para mostrar sugerencias de búsqueda
         function showSearchSuggestions(results) {
             const container = document.getElementById('searchSuggestions');
             
@@ -521,7 +500,6 @@
 
             container.classList.add('visible');
 
-            // Agregar eventos de click
             container.querySelectorAll('.suggestion-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const index = parseInt(item.dataset.index);
@@ -530,17 +508,14 @@
             });
         }
 
-        // Función para ocultar sugerencias
         function hideSearchSuggestions() {
             document.getElementById('searchSuggestions').classList.remove('visible');
         }
 
-        // Función para buscar canal por número
         function findChannelByNumber(number) {
             return channels.find(ch => ch.number === parseInt(number));
         }
 
-        // Función para mostrar spinner
         function showLoadingSpinner() {
             const logoContainer = document.getElementById('channelLogo');
             const spinner = logoContainer.querySelector('.spinner');
@@ -550,7 +525,6 @@
             logoContainer.classList.add('loading');
         }
 
-        // Función para actualizar display durante búsqueda de texto
         function updateSearchDisplay(searchText) {
             isSearching = true;
             currentSearchText = searchText;
@@ -570,7 +544,6 @@
             searchResults = searchChannels(searchText);
             selectedSuggestionIndex = 0;
 
-            // Mostrar el número del canal seleccionado o guión si no hay resultados
             if (searchResults.length > 0) {
                 channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
             } else {
@@ -578,7 +551,6 @@
             }
             channelNumber.className = 'channel-number';
             
-            // Envolver en un div para que word-wrap funcione con flexbox
             const before = searchText.slice(0, cursorPosition);
             const after = searchText.slice(cursorPosition);
             channelNameHeader.innerHTML = `<div style="word-wrap: break-word; overflow-wrap: break-word; text-align: right; width: 100%;">${before}<span class="search-cursor"></span>${after}</div>`;
@@ -587,7 +559,6 @@
             showSearchSuggestions(searchResults);
         }
 
-        // Función para seleccionar una sugerencia
         function selectSuggestion(index) {
             if (index >= 0 && index < searchResults.length) {
                 const selectedChannel = searchResults[index];
@@ -608,15 +579,15 @@
                         setTimeout(() => {
                             progress.style.width = '100%';
                         }, 50);
-                    }, 100); // Cambio rápido pero no inmediato
+                    }, 100);
 
                     closeTimeout = setTimeout(() => {
                         window.close();
-                    }, 2000); // Cerrar más rápido
+                    }, 2000);
                 }
             }
         }
-        // Función para confirmar búsqueda automáticamente
+
         function confirmSearch() {
             if (searchResults.length > 0) {
                 selectSuggestion(selectedSuggestionIndex);
@@ -625,7 +596,6 @@
             }
         }
 
-        // Función para cancelar búsqueda
         function cancelSearch() {
             isSearching = false;
             currentSearchText = '';
@@ -638,12 +608,11 @@
             document.getElementById('channelNumber').className = 'channel-number';
             const channelNameHeader = document.getElementById('channelNameHeader');
             channelNameHeader.className = 'channel-name-header';
-            channelNameHeader.innerHTML = ''; // Limpiar el HTML
+            channelNameHeader.innerHTML = '';
             
             updateChannelDisplay();
         }
 
-        // Función para actualizar display durante escritura de números
         function updateWritingDisplay(writtenNumber) {
             isWritingNumber = true;
             currentWrittenNumber = writtenNumber;
@@ -697,7 +666,6 @@
             }
         }
 
-        // Función para confirmar cambio de canal por número
         function confirmChannelChange() {
             const targetChannel = findChannelByNumber(currentWrittenNumber);
             if (targetChannel) {
@@ -730,7 +698,6 @@
             }
         }
 
-        // Función para cancelar escritura de número
         function cancelNumberWriting() {
             isWritingNumber = false;
             currentWrittenNumber = '';
@@ -738,7 +705,6 @@
             updateChannelDisplay();
         }
 
-        // Función para manejar dígitos escritos
         function handleDigitInput(digit) {
             if (currentWrittenNumber.length >= 4) {
                 cancelNumberWriting();
@@ -758,9 +724,7 @@
             }, waitTime);
         }
 
-        // Función para manejar letras escritas
         function handleLetterInput(char) {
-            // Limitar a 30 caracteres
             if (currentSearchText.length >= 30) {
                 return;
             }
@@ -768,7 +732,6 @@
             const before = currentSearchText.slice(0, cursorPosition);
             const after = currentSearchText.slice(cursorPosition);
             
-            // Capitalizar si es el inicio o después de un espacio
             const shouldCapitalize = cursorPosition === 0 || currentSearchText[cursorPosition - 1] === ' ';
             const charToAdd = shouldCapitalize ? char.toUpperCase() : char.toLowerCase();
             
@@ -784,7 +747,6 @@
             }, 2000);
         }
 
-        // Función para actualizar el display
         function updateChannelDisplay(animate = true) {
             const channel = channels[currentIndex];
             
@@ -919,7 +881,6 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            // Números
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
                 if (isSearching) {
@@ -927,7 +888,6 @@
                 }
                 handleDigitInput(e.key);
             }
-            // Letras y ñ
             else if (e.key.length === 1 && e.key.match(/[a-zñáéíóú]/i)) {
                 e.preventDefault();
                 if (isWritingNumber) {
@@ -935,20 +895,17 @@
                 }
                 handleLetterInput(e.key);
             }
-            // Espacio (solo en búsqueda)
             else if (e.key === ' ') {
                 if (isSearching) {
                     e.preventDefault();
                     handleLetterInput(' ');
                 }
             }
-            // Flechas Arriba/Abajo
             else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 if (isSearching) {
                     selectedSuggestionIndex = (selectedSuggestionIndex - 1 + searchResults.length) % searchResults.length;
                     showSearchSuggestions(searchResults);
-                    // Actualizar el número mostrado
                     const channelNumber = document.getElementById('channelNumber');
                     if (searchResults.length > 0) {
                         channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
@@ -963,7 +920,6 @@
                 if (isSearching) {
                     selectedSuggestionIndex = (selectedSuggestionIndex + 1) % searchResults.length;
                     showSearchSuggestions(searchResults);
-                    // Actualizar el número mostrado
                     const channelNumber = document.getElementById('channelNumber');
                     if (searchResults.length > 0) {
                         channelNumber.textContent = searchResults[selectedSuggestionIndex].number;
@@ -973,13 +929,12 @@
                     changeChannel('down');
                 }
             }
-            // Flechas Izquierda/Derecha (movimiento de cursor en búsqueda)
             else if (e.key === 'ArrowLeft') {
                 if (isSearching) {
                     e.preventDefault();
                     if (cursorPosition > 0) {
                         cursorPosition--;
-                        updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                        updateSearchDisplay(currentSearchText);
                     }
                 }
             }
@@ -988,27 +943,24 @@
                     e.preventDefault();
                     if (cursorPosition < currentSearchText.length) {
                         cursorPosition++;
-                        updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                        updateSearchDisplay(currentSearchText);
                     }
                 }
             }
-            // Home (ir al inicio en búsqueda)
             else if (e.key === 'Home') {
                 if (isSearching) {
                     e.preventDefault();
                     cursorPosition = 0;
-                    updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                    updateSearchDisplay(currentSearchText);
                 }
             }
-            // End (ir al final en búsqueda)
             else if (e.key === 'End') {
                 if (isSearching) {
                     e.preventDefault();
                     cursorPosition = currentSearchText.length;
-                    updateSearchDisplay(currentSearchText); // AGREGAR ESTA LÍNEA
+                    updateSearchDisplay(currentSearchText);
                 }
             }
-            // Enter
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 if (isSearching) {
@@ -1019,7 +971,6 @@
                     confirmChannelChange();
                 }
             }
-            // Escape
             else if (e.key === 'Escape') {
                 e.preventDefault();
                 if (isSearching) {
@@ -1030,12 +981,10 @@
                     window.close();
                 }
             }
-            // Backspace y Ctrl+Backspace
             else if (e.key === 'Backspace') {
                 e.preventDefault();
                 if (isSearching && currentSearchText.length > 0) {
                     if (e.ctrlKey) {
-                        // Ctrl+Backspace: borrar palabra anterior
                         const before = currentSearchText.slice(0, cursorPosition);
                         const after = currentSearchText.slice(cursorPosition);
                         const words = before.trimEnd().split(/\s+/);
@@ -1044,7 +993,6 @@
                         currentSearchText = newBefore + after;
                         cursorPosition = newBefore.length;
                     } else {
-                        // Backspace normal: borrar carácter anterior
                         if (cursorPosition > 0) {
                             const before = currentSearchText.slice(0, cursorPosition - 1);
                             const after = currentSearchText.slice(cursorPosition);
@@ -1076,7 +1024,6 @@
                     }
                 }
             }
-            // Delete (borrar carácter siguiente en búsqueda)
             else if (e.key === 'Delete') {
                 if (isSearching && cursorPosition < currentSearchText.length) {
                     e.preventDefault();
@@ -1095,7 +1042,6 @@
                     }
                 }
             }
-            // F11
             else if (e.key === 'F11') {
                 e.preventDefault();
                 if (!document.fullscreenElement) {
@@ -1113,8 +1059,7 @@
                 changeChannel(event.data.direction);
             } else if (event.data && event.data.action === 'writeNumber') {
                 handleDigitInput(event.data.digit);
-            }
-            else if (event.data && event.data.action === 'writeLetter') {
+            } else if (event.data && event.data.action === 'writeLetter') {
                 handleLetterInput(event.data.char);
             }
         });
@@ -1165,4 +1110,3 @@
     </script>
 </body>
 </html>
-
